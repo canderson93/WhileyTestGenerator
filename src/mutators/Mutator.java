@@ -2,14 +2,18 @@ package mutators;
 
 import java.util.List;
 
-import wyc.io.WhileyFileLexer.Token;
 import wyc.lang.WhileyFile;
 
+/**
+ * A mutator, which generates a list of possible mutations for a whiley file
+ * @author Carl
+ *
+ */
 public interface Mutator {
 	
 	/**
-	 * Generates the next test
+	 * Generates a list of possible mutations from the Whiley File
 	 */
-	public WhileyFile next(WhileyFile tokens);
+	public List<Mutation> generate(WhileyFile file);
 	
 }

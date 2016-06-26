@@ -1,8 +1,5 @@
 package template;
 
-import java.util.List;
-
-import wyc.io.WhileyFileLexer.Token;
 import wyc.lang.WhileyFile;
 
 /**

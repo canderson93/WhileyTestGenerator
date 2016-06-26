@@ -1,10 +1,8 @@
 package template;
 
 import java.io.IOException;
-import java.util.List;
 
 import wyc.io.WhileyFileLexer;
-import wyc.io.WhileyFileLexer.Token;
 import wyc.io.WhileyFileParser;
 import wyc.lang.WhileyFile;
 
@@ -26,7 +24,7 @@ public class FileTemplate implements TemplateGenerator {
 	}
 	
 	/**
-	 * Lexes the file like the compiler would
+	 * Compiles the file
 	 * @return
 	 */
 	private WhileyFile parseFile() {
