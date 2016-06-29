@@ -17,8 +17,8 @@ public interface TemplateGenerator {
 	public WhileyFile generate();
 	
 	/**
-	 * Whether this generator can generate any more templates
+	 * Return a new instance of the previously generated template
 	 * @return
 	 */
-	public boolean hasNext();
+	public WhileyFile copy();
 }

@@ -1,30 +1,31 @@
 package main;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Random;
 
 import wyc.io.WhileyFilePrinter;
 import wyc.lang.WhileyFile;
+import wycc.lang.SyntaxError;
 import mutators.*;
 import template.*;
 
+/**
+ * Iterates over a folder of source files, and applies mutations to them
+ * 
+ * @author Carl
+ *
+ */
 public class WhileyTestGenerator {
-	private final TemplateGenerator template;
-	private final Collection<Mutator> mutators;
+	private Collection<Mutator> mutators;
 
-	private int numTests = 1; // number of tests to generate
-	private int testRate = 1; // number of mutations to perform per test
-
-	private WhileyTestGenerator() { // default for testing
-		mutators = new ArrayList<Mutator>();
-
-		template = new FileTemplate("BoolAssign_Valid_5.whiley");
-		mutators.add(new SelfAssignmentMutator());
-	}
+	// private int testRate = 1; // number of mutations to perform per test
 
 	/**
 	 * Creates an instance of the WhileyTestGenerator. This generator takes a
@@ -35,52 +36,107 @@ public class WhileyTestGenerator {
 	 * @param tests
 	 * @param rate
 	 */
-	public WhileyTestGenerator(int tests, int rate, TemplateGenerator template,
-			Mutator... mutators) {
-		this.template = template;
+	public WhileyTestGenerator(Mutator... mutators) {
 		this.mutators = Arrays.asList(mutators);
+	}
 
-		numTests = tests;
-		testRate = rate;
+	public void iterate(String root, String target) {
+		File file = new File(root);
+		iterate(file, target);
 	}
 
 	/**
-	 * Starts the test generator, printing to System.out
+	 * Iterate over a sub directory, and generate tests
+	 * 
+	 * @param root
 	 */
-	public void start() {
-		this.start(System.out);
-	}
+	public void iterate(File root, String target) {
+		for (File f : root.listFiles()) {
+			if (f.isDirectory()) {
+				iterate(f, target);
+				continue;
+			}
 
-	/**
-	 * Starts the test generator
-	 */
-	public void start(OutputStream stream) {
-		for (int test = 0; test < numTests; test++) {
-			WhileyFile file = doTest();
-			print(file, stream);
+			TemplateGenerator template = new FileTemplate(f.getAbsolutePath());
+			List<WhileyFile> output = null;
+			try {
+				output = generateTests(template);
+			} catch (SyntaxError e){
+				System.err.println("Error parsing "+f.getName()+": "+e.getMessage());
+				continue;
+			}
+
+			int index = 0;
+
+			// Write all the files to the filesystem
+			for (WhileyFile out : output) {
+				FileOutputStream stream = null;
+				try {
+					//Create and write out the file stream
+					stream = new FileOutputStream(target + "/" + index + "_" + f.getName());
+					print(out, stream);
+					
+					index += 1;
+				} catch (FileNotFoundException e) {
+					System.err.println(e.getMessage());
+				} catch (RuntimeException e) {
+					System.err.println(e.getMessage());
+				} finally {
+					//Close the stream
+					if (stream != null){
+						try {
+							stream.close();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+			}
 		}
 	}
 
-	private WhileyFile doTest() {
-		WhileyFile file = template.generate(); // src
-		List<Mutation> mutations = new ArrayList<Mutation>();
-		
-		Random rand = new Random(System.currentTimeMillis());
+	/**
+	 * Generate a list of test files
+	 * 
+	 * @return
+	 */
+	private List<WhileyFile> generateTests(TemplateGenerator template) {
+		WhileyFile base = template.generate(); // src
+		List<WhileyFile> outputs = new ArrayList<WhileyFile>();
+		int mutations = generateMutation(base).size(); // Get the maximum number
+														// of mutations
 
+		for (int i = 0; i < mutations; i++) {
+			// Sadly, we have to get a new instance of WhileyFile so that
+			// we can apply each mutation in isolation.
+			// Since mutations are applied to a specific file instance, we then
+			// have to regenerate them as well.
+			// TODO: Work out a better way of doing this
+			WhileyFile file = template.copy();
+			List<Mutation> muts = generateMutation(file);
+
+			muts.get(i).apply();
+			outputs.add(file);
+		}
+
+		return outputs;
+	}
+
+	/**
+	 * Generates a list of mutations from a file
+	 * 
+	 * @param file
+	 * @return
+	 */
+	private List<Mutation> generateMutation(WhileyFile file) {
+		List<Mutation> mutations = new ArrayList<Mutation>();
 		// Populate the list of mutations
 		for (Mutator m : mutators) {
 			mutations.addAll(m.generate(file));
 		}
 
-		// Perform the mutations for this test
-		for (int i = 0; i < testRate; i++) {
-			int index = rand.nextInt(mutations.size());
-			
-			mutations.get(index).apply();
-			i++;
-		}
-		
-		return file;
+		return mutations;
 	}
 
 	private void print(WhileyFile file, OutputStream stream) {
@@ -89,7 +145,9 @@ public class WhileyTestGenerator {
 	}
 
 	public static void main(String[] args) {
-		WhileyTestGenerator generator = new WhileyTestGenerator();
-		generator.start();
+		WhileyTestGenerator generator = new WhileyTestGenerator(
+				new SelfAssignmentMutator(),
+				new AssignmentRemovalMutator());
+		generator.iterate("tests", "output");
 	}
 }

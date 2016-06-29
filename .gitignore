@@ -7,3 +7,4 @@ output/
 *.whiley
 *.class
 *.wyil
+/bin1/

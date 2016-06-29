@@ -41,8 +41,8 @@ public class FileTemplate implements TemplateGenerator {
 	}
 
 	@Override
-	public boolean hasNext() {
-		return true;
+	public WhileyFile copy() {
+		return parseFile();
 	}
 
 }

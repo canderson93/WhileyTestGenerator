@@ -3,19 +3,12 @@ package mutators;
 import java.util.ArrayList;
 import java.util.List;
 
-import wyc.lang.Expr;
 import wyc.lang.Stmt;
 import wyc.lang.WhileyFile;
 import wyc.lang.WhileyFile.Declaration;
 import wyc.lang.WhileyFile.FunctionOrMethod;
-import wycc.lang.Attribute;
 
-/**
- * Swaps Whiley assignment values with others
- * @author Carl
- *
- */
-public class SelfAssignmentMutator implements Mutator {
+public class AssignmentRemovalMutator implements Mutator {
 
 	@Override
 	public List<Mutation> generate(WhileyFile file) {
@@ -44,7 +37,7 @@ public class SelfAssignmentMutator implements Mutator {
 			Stmt statement = func.statements.get(i);
 			
 			if (statement instanceof Stmt.VariableDeclaration){
-				SelfAssignmentMutation mutagen = new SelfAssignmentMutation((Stmt.VariableDeclaration) statement);
+				AssignmentRemovalMutation mutagen = new AssignmentRemovalMutation(func.statements, (Stmt.VariableDeclaration) statement);
 				list.add(mutagen);
 			}
 		}
@@ -52,22 +45,18 @@ public class SelfAssignmentMutator implements Mutator {
 		return list;
 	}
 	
-	/**
-	 * Causes a variable assignments to assign themselves
-	 *
-	 */
-	protected class SelfAssignmentMutation implements Mutation{
+	protected class AssignmentRemovalMutation implements Mutation {
+		protected List<Stmt> list;
 		protected Stmt.VariableDeclaration statement;
 		
-		public SelfAssignmentMutation(Stmt.VariableDeclaration statement){
+		public AssignmentRemovalMutation(List<Stmt> list, Stmt.VariableDeclaration statement){
+			this.list = list;
 			this.statement = statement;
 		}
 		
 		@Override
 		public void apply() {
-			List<Attribute> attr = statement.expr != null ? statement.expr.attributes() : new ArrayList<Attribute>();
-			statement.expr = new Expr.LocalVariable(statement.parameter.name, attr);
+			list.remove(statement);
 		}
-		
 	}
 }
