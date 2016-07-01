@@ -147,7 +147,10 @@ public class WhileyTestGenerator {
 	public static void main(String[] args) {
 		WhileyTestGenerator generator = new WhileyTestGenerator(
 				new SelfAssignmentMutator(),
-				new AssignmentRemovalMutator());
+				new AssignmentRemovalMutator(),
+				new DeclareToAssignMutator(),
+				new ReturnMutator());
 		generator.iterate("tests", "output");
+		System.out.println("Finished");
 	}
 }
